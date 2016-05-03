@@ -1,0 +1,18 @@
+{
+    "Name": {
+        "zh": "名字",
+        "en": "Name"
+    },
+    "${Name} is": {
+    	"zh": "*is* ${Name}",
+    	"en": "${Name} is"
+   	},
+    "City": {
+        "zh": "城市",
+        "en": "City"
+    },
+    "Country": {
+        "zh": "国家",
+        "en": "Country"
+    }
+}
