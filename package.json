@@ -1,0 +1,19 @@
+{
+  "name": "mithril_component_test",
+  "version": "1.0.0",
+  "description": "One-step mithril component testing",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^3.3.6",
+    "express": "^4.13.4",
+    "fs-extra": "^0.30.0",
+    "less": "^2.6.1",
+    "mithril-node-render": "^0.5.0",
+    "path": "^0.12.7"
+  }
+}
