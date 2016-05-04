@@ -15,5 +15,9 @@
     "less": "^2.6.1",
     "mithril-node-render": "^0.5.0",
     "path": "^0.12.7"
-  }
+  },
+  "bin": {
+    "mct": "app.js"
+  },
+  "preferGlobal": "true"
 }

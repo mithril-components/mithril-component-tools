@@ -2,12 +2,13 @@
 
 'use strict'
 
-/** 
+/*tes
 est.
 */
 const fs    = require('fs-extra');
 const exec = require('child_process').exec;
 const path = require('path');
+
 const less = require('less');
 const readline = require('readline');
 const express = require('express');
@@ -16,16 +17,35 @@ const app    = express();
 const port   = process.env.PORT || 8080;
 const router = express.Router();
 
-const translate = require('./translation.json');
-let language;
+const moduleDir = __dirname;
+const localDir = process.cwd();
+const translate = require(path.join(localDir, 'translation.json'));
 
 app.use('', router);
 
 router.get('/*', (req, res) => {
-    res.sendFile(path.join(__dirname + '/public/index.html'));
+    res.sendFile(path.join(moduleDir, 'public/index.html'));
 });
 
-const execute = (command, module) => {    
+const execute = (command, module) => {
+    switch(command) {
+        case 'test': 
+            executeTest(module);
+            let server = app.listen(port, () => {
+                let host = server.address().address
+                let port = server.address().port
+                console.log("Listening at http://%s:%s\n", host, port)
+            });
+            break;
+        case 'generate': 
+            executeGenerate(module);
+            break;
+        default: 
+            console.log('Unrecognized command');
+    }
+}
+
+const executeTest = (module) => {    
     // Translate the module itself: 
     let translatedModule = translateModule(module);
 
@@ -48,18 +68,26 @@ const execute = (command, module) => {
             renderLess(lessPath);
 
             /* Generate the output HTML for in-browser test */
-            const base = fs.readFileSync('public/test.html', 'UTF-8');
-            fs.writeFileSync('public/index.html', base.replace('%CONTENT%', translatedHtml), 'UTF-8');
+            const base = fs.readFileSync(path.join(moduleDir, 'public/test.html'), 'UTF-8');
+            fs.outputFileSync(path.join(moduleDir, 'public/index.html'), base.replace('%CONTENT%', translatedHtml), 'UTF-8');
         }
     });
 }
 
-const translateModule = (modulePath) => {
+const executeGenerate= (module) => {
+    let fileContents = fs.readFileSync(path.join(localDir, module), {encoding: 'utf-8'});
+
+    let translationJson = generateTranslations(fileContents);
+    fs.outputFileSync(path.join(moduleDir, 'public/translation.json'), JSON.stringify(translationJson));
+    return;
+}
+
+const translateModule = (module) => {
     
-    let fileContents = fs.readFileSync(modulePath, {encoding: 'utf-8'});
+    let fileContents = fs.readFileSync(path.join(localDir, module), {encoding: 'utf-8'});
 
     let translatedContents = translateContents(fileContents);
-    let translatedModule = `public/[${language}]` + modulePath;
+    let translatedModule = `public/[${language}]` + module;
     fs.outputFileSync(translatedModule, translatedContents);
 
     return translatedModule;
@@ -67,9 +95,7 @@ const translateModule = (modulePath) => {
 
 const translateContents = (contents) => {
     // Use regexp to get dependancies including regexp 
-    var translationsRegex = /`([^`]*)`/g,
-        matches;
-
+    var translationsRegex = /`([^`]*)`/g;
     let newContents = contents.replace(translationsRegex, (match) => {
         let phrase = match.replace(/`/g, '');
 
@@ -82,31 +108,49 @@ const translateContents = (contents) => {
     return newContents;
 }
 
-const createTranslatedTest = (modulePath) => {
-    if (modulePath == null) {
+const generateTranslations = (contents) => {
+    var translationsRegex = /`([^`]*)`/g,
+        matches,
+        translatables = [];
+
+    let translations = {};
+
+    while (matches = translationsRegex.exec(contents)) {
+        let lang = `${language}`;
+
+        // TODO cleana this up
+        translations[matches[1]] = {};
+        translations[matches[1]][lang] = matches[1];
+    }
+
+    return translations;
+}
+
+const createTranslatedTest = (module) => {
+    if (module == null) {
         throw err;
     }
 
     // Read the file
-    let testContents = fs.readFileSync('test.js', {encoding: 'utf-8'});
+    let testContents = fs.readFileSync(path.join(localDir, 'test.js'), {encoding: 'utf-8'});
     let testCopyContents = testContents;
 
     // Use regexp to get dependancies
-    var modulePathRegex = new RegExp(modulePath, "gi"),
+    var moduleRegex = new RegExp(module, "gi"),
         matches,
         requirements = [];
 
-    while (matches = modulePathRegex.exec(testContents)) {
-        testCopyContents = testCopyContents.replace(matches[0], `[${language}]${modulePath}`);
+    while (matches = moduleRegex.exec(testContents)) {
+        testCopyContents = testCopyContents.replace(matches[0], `[${language}]${module}`);
     }
 
-    let translatedTest = `public/[translated]test.js`;
+    let translatedTest = `mctTest/[translated]test.js`;
     fs.outputFileSync(translatedTest, testCopyContents);
 }
 
 
 const renderLess = (lessPath) => {
-    var lessContents = fs.readFileSync(lessPath, 'UTF-8');
+    var lessContents = fs.readFileSync(path.join(localDir, lessPath), 'UTF-8');
     var lessContentsCopy = lessContents;
 
     var bootStrapDir = "node_modules/bootstrap/less/";
@@ -129,22 +173,16 @@ const renderLess = (lessPath) => {
 
     less.render(lessContentsCopy, function(err, css) {
         if (!err) {
-
-            let newCSSPath = "public/test.css";
-            fs.outputFileSync(newCSSPath, css.css);
+            fs.outputFileSync(path.join(moduleDir, "public/test.css"), css.css);
         } else {
             console.log("ERR rendering", err);
         }
     });
 }
 
+// Expected format: mct command module.js lang
+let executableCommand  = process.argv[2];
+let executableModule = process.argv[3]; 
+let language = process.argv[4] || 'zh';
 
-let testModule = process.argv[3] // node mct test module.js
-language = process.argv[4] || 'zh';
-
-execute('test', testModule);
-const server = app.listen(port, () => {
-    let host = server.address().address
-    let port = server.address().port
-    console.log("Listening at http://%s:%s\n", host, port)
-});
+execute(executableCommand, executableModule);
