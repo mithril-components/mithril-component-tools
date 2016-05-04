@@ -19,12 +19,24 @@ const router = express.Router();
 
 const moduleDir = __dirname;
 const localDir = process.cwd();
-const translate = require(path.join(localDir, 'translation.json'));
 
-app.use('', router);
+let translate, hasTranslation;
+try {
+    translate = require(path.join(localDir, 'translation.json'));
+    hasTranslation = true;
+} catch (e) {
+    hasTranslation = false
+}
 
-router.get('/*', (req, res) => {
+// app.use('', router);
+app.use("/", express.static(__dirname + '/'));
+// app.use('/node_modules',  express.static(__dirname + '/node_modules'));
+
+router.get('/public/index.html', (req, res) => {
     res.sendFile(path.join(moduleDir, 'public/index.html'));
+});
+router.get('/public/test.css', (req, res) => {
+    res.sendFile(path.join(moduleDir, 'public/test.css'));
 });
 
 const execute = (command, module) => {
@@ -45,15 +57,28 @@ const execute = (command, module) => {
     }
 }
 
-const executeTest = (module) => {    
-    // Translate the module itself: 
-    let translatedModule = translateModule(module);
+const executeTest = (module) => {
 
-    // Change test to use the translatedModule
     let test = 'test.js';
-    createTranslatedTest(module);
+    // let hasTranslation = !fs.accessSync('translation.json', fs.R_OK);
+    // check if there is a translation.json
+    if (hasTranslation) {
+        // Translate test.js and return the translated file's location
+        test = translatedTest(module);;
+        // Translate the module itself: 
+        let translatedModule = translateModule(module);
+    }
 
-    const child = exec(`node public/[translated]${test}`,
+    // check if there is a less file for the module
+    let lessFile = module.replace(".js", ".less");
+    try {
+        fs.accessSync(lessFile, fs.R_OK);
+        renderLess(lessFile);
+    } catch (e) {
+        hasLess = false;
+    }
+
+    const child = exec(`node ${test}`,
       (error, stdout, stderr) => {
         if (error !== null) {
             console.log(`exec error: ${error}`);
@@ -62,14 +87,13 @@ const executeTest = (module) => {
             // console.log(`stderr: ${stderr}`);
 
             let innerHtml = stdout;
-            let translatedHtml = translateContents(innerHtml);
-
-            let lessPath = module.replace(".js", ".less");
-            renderLess(lessPath);
+            if(hasTranslation) {
+                innerHtml = translateContents(innerHtml);
+            }
 
             /* Generate the output HTML for in-browser test */
             const base = fs.readFileSync(path.join(moduleDir, 'public/test.html'), 'UTF-8');
-            fs.outputFileSync(path.join(moduleDir, 'public/index.html'), base.replace('%CONTENT%', translatedHtml), 'UTF-8');
+            fs.outputFileSync(path.join(moduleDir, 'public/index.html'), base.replace('%CONTENT%', innerHtml), 'UTF-8');
         }
     });
 }
@@ -82,12 +106,39 @@ const executeGenerate= (module) => {
     return;
 }
 
+
+const translatedTest = (module) => {
+    if (module == null) {
+        throw err;
+    }
+
+    // Read the file
+    let testContents = fs.readFileSync(path.join(localDir, 'test.js'), {encoding: 'utf-8'});
+    let testCopyContents = testContents;
+
+    // Use regexp to get dependancies and replace the module bein tested
+    var moduleRegex = new RegExp(module, "gi"),
+        matches,
+        requirements = [];
+
+    while (matches = moduleRegex.exec(testContents)) {
+        testCopyContents = testCopyContents.replace(matches[0], `[${language}]${module}`);
+    }
+
+    // Use regexp to translate the rest of the content
+    let translatedTestContent = translateContents(testCopyContents);
+    let translatedTest = `public/[translated]test.js`;
+    fs.outputFileSync(translatedTest, translatedTestContent);
+
+    return translatedTest;
+}
+
 const translateModule = (module) => {
     
     let fileContents = fs.readFileSync(path.join(localDir, module), {encoding: 'utf-8'});
 
     let translatedContents = translateContents(fileContents);
-    let translatedModule = `public/[${language}]` + module;
+    let translatedModule = `public/[${language}]${module}`;
     fs.outputFileSync(translatedModule, translatedContents);
 
     return translatedModule;
@@ -99,7 +150,7 @@ const translateContents = (contents) => {
     let newContents = contents.replace(translationsRegex, (match) => {
         let phrase = match.replace(/`/g, '');
 
-        let individualWords = phrase.split(' ');
+        // let individualWords = phrase.split(' ');
 
         let replacement = "`" + translate[phrase][language] + "`";
         return replacement;
@@ -125,29 +176,6 @@ const generateTranslations = (contents) => {
 
     return translations;
 }
-
-const createTranslatedTest = (module) => {
-    if (module == null) {
-        throw err;
-    }
-
-    // Read the file
-    let testContents = fs.readFileSync(path.join(localDir, 'test.js'), {encoding: 'utf-8'});
-    let testCopyContents = testContents;
-
-    // Use regexp to get dependancies
-    var moduleRegex = new RegExp(module, "gi"),
-        matches,
-        requirements = [];
-
-    while (matches = moduleRegex.exec(testContents)) {
-        testCopyContents = testCopyContents.replace(matches[0], `[${language}]${module}`);
-    }
-
-    let translatedTest = `mctTest/[translated]test.js`;
-    fs.outputFileSync(translatedTest, testCopyContents);
-}
-
 
 const renderLess = (lessPath) => {
     var lessContents = fs.readFileSync(path.join(localDir, lessPath), 'UTF-8');
@@ -178,6 +206,11 @@ const renderLess = (lessPath) => {
             console.log("ERR rendering", err);
         }
     });
+}
+
+// TODO cleanup after files
+const cleanUpDir = () => {
+
 }
 
 // Expected format: mct command module.js lang
