@@ -14,7 +14,7 @@ Test components
 ==========================
 Command: `mct test COMPONENT_NAME.js LANGUAGE` (LANGUAGE optional, only runs if there is a translation.json file)
 
-This will start a local server at port 8080 running your mithril component.
+This will start an example of your mithril component at localhost:8080
 
 To use mithril_component_tools for testing your mithril component you need to have these files in your repo:
 * COMPONENT_NAME.less: (Optional) Less styles if you need in your project. The tools render imported `.less` files from the bootstrap node_module.

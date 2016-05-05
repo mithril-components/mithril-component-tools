@@ -20,8 +20,10 @@ const localDir = process.cwd();
 
 
 app.use("/node_modules/", express.static(path.join(moduleDir, 'node_modules')));
-app.use("/public/index.html", express.static(path.join(moduleDir, 'public/index.html')));
 app.use("/public/test.css", express.static(path.join(moduleDir, 'public/test.css')));
+app.get('/', function(req, res) {
+  res.sendFile(path.join(moduleDir, 'public/index.html'));
+});
 
 let translate, hasTranslation;
 try {
@@ -63,17 +65,18 @@ const executeTest = (module) => {
 
     // check if there is a less file for the module
     let lessFile = module.replace(".js", ".less");
+    let hasLess = true;
     try {
         fs.accessSync(lessFile, fs.R_OK);
-        renderLess(lessFile);
     } catch (e) {
+        // console.log("Error ")
         hasLess = false;
     }
 
     const child = exec(`node ${test}`,
       (error, stdout, stderr) => {
         if (error !== null) {
-            console.log(`exec error: ${error}`);
+            console.log(`Test execution error: ${error}`);
         } else {
             // console.log(`stdout: ${stdout}`);
             // console.log(`stderr: ${stderr}`);
@@ -82,7 +85,9 @@ const executeTest = (module) => {
             if(hasTranslation) {
                 innerHtml = translateContents(innerHtml);
             }
-
+            if (hasLess) {
+                renderLess(lessFile);
+            }
             /* Generate the output HTML for in-browser test */
             const base = fs.readFileSync(path.join(moduleDir, 'public/test.html'), 'UTF-8');
             fs.outputFileSync(path.join(moduleDir, 'public/index.html'), base.replace('%CONTENT%', innerHtml), 'UTF-8');
@@ -182,14 +187,12 @@ const renderLess = (lessPath) => {
     while (matches = lessRegex.exec(lessContents)) {
         let matched = matches[0];
         let lessImport = matches[1];
-        // console.log(matched); // lessImport.less
+
         let replacement = "@import '" + bootStrapDir + lessImport + "';";
-        // console.log(replacement); // bootstrapDir/lessImport.less
+
 
         lessContentsCopy = lessContentsCopy.replace(matched, replacement);
     }
-
-    // console.log("Contents: ", lessContentsCopy);
 
     less.render(lessContentsCopy, function(err, css) {
         if (!err) {
