@@ -6,7 +6,7 @@ To use any mithril_component_tools your mithril component you need to have these
 
 Generate a translation JSON
 ===========================
-Command: `mct generate COMPONENT_NAME.js`
+Command: `mct generate COMPONENT_NAME.js LANGUAGE`
 
 This will generate a translation.json file which with default translations equal to the original language that can be filled in later.
 
