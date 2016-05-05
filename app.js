@@ -94,7 +94,7 @@ const executeGenerate= (module) => {
     let fileContents = fs.readFileSync(path.join(localDir, module), {encoding: 'utf-8'});
 
     let translationJson = generateTranslationsJSON(fileContents);
-    fs.outputFileSync(path.join(moduleDir, 'public/translation.json'), JSON.stringify(translationJson));
+    fs.outputFileSync(path.join(localDir, 'translation.json'), JSON.stringify(translationJson));
     return;
 }
 

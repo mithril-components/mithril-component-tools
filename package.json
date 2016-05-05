@@ -1,7 +1,7 @@
 {
-  "name": "mithril_component_test",
-  "version": "1.0.0",
-  "description": "One-step mithril component testing",
+  "name": "mithril_component_tools",
+  "version": "1.0.1",
+  "description": "One-step mithril component utilities andtesting",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
