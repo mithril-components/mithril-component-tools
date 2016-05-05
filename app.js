@@ -18,6 +18,11 @@ const port   = process.env.PORT || 8080;
 const moduleDir = __dirname;
 const localDir = process.cwd();
 
+
+app.use("/node_modules/", express.static(path.join(moduleDir, 'node_modules')));
+app.use("/public/index.html", express.static(path.join(moduleDir, 'public/index.html')));
+app.use("/public/test.css", express.static(path.join(moduleDir, 'public/test.css')));
+
 let translate, hasTranslation;
 try {
     translate = require(path.join(localDir, 'translation.json'));
@@ -25,12 +30,6 @@ try {
 } catch (e) {
     hasTranslation = false
 }
-
-// app.use("/", express.static(moduleDir));
-
-app.use("/node_modules/", express.static(path.join(moduleDir, 'node_modules')));
-app.use("/public/index.html", express.static(path.join(moduleDir, 'public/index.html')));
-app.use("/public/test.css", express.static(path.join(moduleDir, 'public/test.css')));
 
 const execute = (command, module) => {
     switch(command) {
