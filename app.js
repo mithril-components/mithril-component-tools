@@ -8,14 +8,12 @@ est.
 const fs    = require('fs-extra');
 const exec = require('child_process').exec;
 const path = require('path');
-
 const less = require('less');
 const readline = require('readline');
 const express = require('express');
 
 const app    = express();
 const port   = process.env.PORT || 8080;
-const router = express.Router();
 
 const moduleDir = __dirname;
 const localDir = process.cwd();
@@ -28,16 +26,11 @@ try {
     hasTranslation = false
 }
 
-// app.use('', router);
-app.use("/", express.static(__dirname + '/'));
-// app.use('/node_modules',  express.static(__dirname + '/node_modules'));
+// app.use("/", express.static(moduleDir));
 
-router.get('/public/index.html', (req, res) => {
-    res.sendFile(path.join(moduleDir, 'public/index.html'));
-});
-router.get('/public/test.css', (req, res) => {
-    res.sendFile(path.join(moduleDir, 'public/test.css'));
-});
+app.use("/node_modules/", express.static(path.join(moduleDir, 'node_modules')));
+app.use("/public/index.html", express.static(path.join(moduleDir, 'public/index.html')));
+app.use("/public/test.css", express.static(path.join(moduleDir, 'public/test.css')));
 
 const execute = (command, module) => {
     switch(command) {
@@ -101,7 +94,7 @@ const executeTest = (module) => {
 const executeGenerate= (module) => {
     let fileContents = fs.readFileSync(path.join(localDir, module), {encoding: 'utf-8'});
 
-    let translationJson = generateTranslations(fileContents);
+    let translationJson = generateTranslationsJSON(fileContents);
     fs.outputFileSync(path.join(moduleDir, 'public/translation.json'), JSON.stringify(translationJson));
     return;
 }
@@ -159,7 +152,7 @@ const translateContents = (contents) => {
     return newContents;
 }
 
-const generateTranslations = (contents) => {
+const generateTranslationsJSON = (contents) => {
     var translationsRegex = /`([^`]*)`/g,
         matches,
         translatables = [];
@@ -217,5 +210,4 @@ const cleanUpDir = () => {
 let executableCommand  = process.argv[2];
 let executableModule = process.argv[3]; 
 let language = process.argv[4] || 'zh';
-
 execute(executableCommand, executableModule);
