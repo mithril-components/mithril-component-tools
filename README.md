@@ -10,6 +10,7 @@ Command: `mct generate COMPONENT_NAME.js LANGUAGE`
 
 This will generate a translation.json file which with default translations equal to the original language that can be filled in later.
 
+
 Test components
 ==========================
 Command: `mct test COMPONENT_NAME.js LANGUAGE` (LANGUAGE optional, only runs if there is a translation.json file)

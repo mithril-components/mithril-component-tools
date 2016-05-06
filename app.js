@@ -6,7 +6,7 @@
 est.
 */
 const fs    = require('fs-extra');
-const exec = require('child_process').exec;
+const exec = require('child_process').execFile;
 const path = require('path');
 const less = require('less');
 const readline = require('readline');
