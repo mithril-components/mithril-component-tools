@@ -20,7 +20,7 @@ const localDir = process.cwd();
 
 
 app.use("/node_modules/", express.static(path.join(moduleDir, 'node_modules')));
-app.use("/public/test.css", express.static(path.join(moduleDir, 'public/test.css')));
+app.use("/test.css", express.static(path.join(moduleDir, 'public/test.css')));
 app.get('/', function(req, res) {
   res.sendFile(path.join(moduleDir, 'public/index.html'));
 });
@@ -54,11 +54,11 @@ const execute = (command, module) => {
 const executeTest = (module) => {
 
     let test = 'test.js';
-    // let hasTranslation = !fs.accessSync('translation.json', fs.R_OK);
+
     // check if there is a translation.json
     if (hasTranslation) {
         // Translate test.js and return the translated file's location
-        test = translatedTest(module);;
+        test = translateTest(module);;
         // Translate the module itself: 
         let translatedModule = translateModule(module);
     }
@@ -73,7 +73,7 @@ const executeTest = (module) => {
         hasLess = false;
     }
 
-    const child = exec(`node ${test}`,
+    const child = exec('node', [`${test}`], {cwd: localDir},
       (error, stdout, stderr) => {
         if (error !== null) {
             console.log(`Test execution error: ${error}`);
@@ -103,8 +103,7 @@ const executeGenerate= (module) => {
     return;
 }
 
-
-const translatedTest = (module) => {
+const translateTest = (module) => {
     if (module == null) {
         throw err;
     }
@@ -113,7 +112,7 @@ const translatedTest = (module) => {
     let testContents = fs.readFileSync(path.join(localDir, 'test.js'), {encoding: 'utf-8'});
     let testCopyContents = testContents;
 
-    // Use regexp to get dependancies and replace the module bein tested
+    // Use regexp to get dependancies and replace the module being tested
     var moduleRegex = new RegExp(module, "gi"),
         matches,
         requirements = [];
@@ -124,7 +123,7 @@ const translatedTest = (module) => {
 
     // Use regexp to translate the rest of the content
     let translatedTestContent = translateContents(testCopyContents);
-    let translatedTest = `public/[translated]test.js`;
+    let translatedTest = path.join(moduleDir, `public/[${language}]test.js`);
     fs.outputFileSync(translatedTest, translatedTestContent);
 
     return translatedTest;
@@ -136,7 +135,7 @@ const translateModule = (module) => {
 
     let translatedContents = translateContents(fileContents);
     let translatedModule = `public/[${language}]${module}`;
-    fs.outputFileSync(translatedModule, translatedContents);
+    fs.outputFileSync(path.join(moduleDir, translatedModule), translatedContents);
 
     return translatedModule;
 }
