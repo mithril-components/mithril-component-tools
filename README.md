@@ -1,5 +1,7 @@
 Mithril Component Tools
 ==========================
+Install via `npm install -g mithril_component_tools`
+
 To use any mithril_component_tools your mithril component you need to have these files in your repo:
 * COMPONENT_NAME.js: COMPONENT_NAME is the name of your component. 
 

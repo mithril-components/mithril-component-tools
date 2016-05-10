@@ -2,7 +2,7 @@
 
 'use strict'
 
-/*tes
+/*
 est.
 */
 const fs    = require('fs-extra');
