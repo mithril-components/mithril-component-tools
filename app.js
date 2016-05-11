@@ -6,12 +6,10 @@
 est.
 */
 const fs   = require('fs-extra');
-
-
-
 const exec = require('child_process').execFile;
 const path = require('path');
 const less = require('less');
+const Promise = require('promise');
 const readline = require('readline');
 const express = require('express');
 
@@ -57,7 +55,6 @@ const execute = (command, module) => {
     switch(command) {
         case 'test': 
             executeTest(module).then((response) => {
-                console.log("Passed");
                 startServer();
             }, (err) => { 
                 // There was an error so the server should not start 
@@ -93,13 +90,12 @@ const executeTest = (module) => {
         // console.log("Error ");
         hasLess = false;
     }
-    
 
     return new Promise(function (resolve, reject) {
         let Child = exec('node', [`${test}`], {cwd: localDir},
           (error, stdout, stderr) => {
             if (error !== null) {
-                console.log(`Test execution error:\n ${error}`);
+                console.log(`${error}`);
                 return false;
             } else {
                 // TODO: Handle user defined errors
@@ -112,22 +108,34 @@ const executeTest = (module) => {
                 if(hasTranslation) {
                     innerHtml = translateContents(innerHtml);
                 }
-                if (hasLess) {
-                    let renderSuccess = renderLess(lessFile);
-                    if(!renderSuccess) {
-                        Child.emit("error");
-                    }
-                }
-                /* Generate the output HTML for in-browser test */
-                const base = fs.readFileSync(path.join(moduleDir, 'public/test.html'), 'UTF-8');
-                fs.outputFileSync(path.join(moduleDir, 'public/index.html'), base.replace('%CONTENT%', innerHtml), 'UTF-8');
 
-                Child.emit("success");
+                if (hasLess) {
+                    let rendered = renderLess(lessFile).then((response) => {
+                        /* Generate the output HTML for in-browser test */
+                        const base = fs.readFileSync(path.join(moduleDir, 'public/test.html'), 'UTF-8');
+                        fs.outputFileSync(path.join(moduleDir, 'public/index.html'), base.replace('%CONTENT%', innerHtml), 'UTF-8');
+                        Child.emit("custom-success");
+                    }, (err) => {
+                        Child.emit("error");
+                        return;
+                    });
+                } else {
+                    /* Generate the output HTML for in-browser test */
+                    const base = fs.readFileSync(path.join(moduleDir, 'public/test.html'), 'UTF-8');
+                    fs.outputFileSync(path.join(moduleDir, 'public/index.html'), base.replace('%CONTENT%', innerHtml), 'UTF-8');
+                    Child.emit("custom-success");
+                }
             }
         });
 
-        Child.addListener("error", reject);
-        Child.addListener("success", resolve);
+        Child.addListener("error", () => { 
+            // console.log("Error in test"); 
+            reject(); 
+        });
+        Child.addListener("custom-success", () => { 
+            // console.log("Sucessful test"); 
+            resolve(); 
+        });
     })
 }
 
@@ -212,7 +220,9 @@ const generateTranslationsJSON = (contents) => {
 }
 
 const renderLess = (lessPath) => {
+
     var lessContents = fs.readFileSync(path.join(localDir, lessPath), 'UTF-8');
+
     var lessContentsCopy = lessContents;
 
     var bootStrapDir = "node_modules/bootstrap/less/";
@@ -230,16 +240,18 @@ const renderLess = (lessPath) => {
 
         lessContentsCopy = lessContentsCopy.replace(matched, replacement);
     }
+    return new Promise((resolve, reject) => {
+       less.render(lessContentsCopy, (err, cssOutput) => {
+            if (err == null) {
+                fs.outputFileSync(path.join(moduleDir, "public/test.css"), cssOutput.css);
+                resolve(true);
+            } else {
+                console.log(err);
+                reject(false);
+            }
+        });
 
-    less.render(lessContentsCopy, function(err, css) {
-        if (!err) {
-            fs.outputFileSync(path.join(moduleDir, "public/test.css"), css.css);
-            return true;
-        } else {
-            console.log("Error rendering .less file:\n", err);
-            return false;
-        }
-    });
+    })
 }
 
 
