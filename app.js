@@ -5,7 +5,10 @@
 /*
 est.
 */
-const fs    = require('fs-extra');
+const fs   = require('fs-extra');
+
+
+
 const exec = require('child_process').execFile;
 const path = require('path');
 const less = require('less');
@@ -13,7 +16,7 @@ const readline = require('readline');
 const express = require('express');
 
 const app    = express();
-const port   = process.env.PORT || 8080;
+let port   = process.env.PORT || 9004;
 
 const moduleDir = __dirname;
 const localDir = process.cwd();
@@ -33,15 +36,33 @@ try {
     hasTranslation = false
 }
 
+const startServer = () => {
+    let server = app.listen(port, () => {
+        let host = server.address().address
+        let port = server.address().port
+        console.log("Listening at http://%s:%s\n", host, port)
+    }).on('error', function(err) {
+        if (err.errno === 'EADDRINUSE') {
+            port = port + 1;
+            console.log(`Test server port in use, retrying on next port: ${port}`);
+
+            startServer();
+        } else {
+            console.log("Local server error: ", err);
+        }
+    });
+}
+
 const execute = (command, module) => {
     switch(command) {
         case 'test': 
-            executeTest(module);
-            let server = app.listen(port, () => {
-                let host = server.address().address
-                let port = server.address().port
-                console.log("Listening at http://%s:%s\n", host, port)
-            });
+            executeTest(module).then((response) => {
+                console.log("Passed");
+                startServer();
+            }, (err) => { 
+                // There was an error so the server should not start 
+            })
+
             break;
         case 'generate': 
             executeGenerate(module);
@@ -55,7 +76,7 @@ const executeTest = (module) => {
 
     let test = 'test.js';
 
-    // check if there is a translation.json
+    // Check if there is a translation.json
     if (hasTranslation) {
         // Translate test.js and return the translated file's location
         test = translateTest(module);;
@@ -63,42 +84,59 @@ const executeTest = (module) => {
         let translatedModule = translateModule(module);
     }
 
-    // check if there is a less file for the module
+    // Check if there is a less file for the module
     let lessFile = module.replace(".js", ".less");
     let hasLess = true;
     try {
         fs.accessSync(lessFile, fs.R_OK);
     } catch (e) {
-        // console.log("Error ")
+        // console.log("Error ");
         hasLess = false;
     }
+    
 
-    const child = exec('node', [`${test}`], {cwd: localDir},
-      (error, stdout, stderr) => {
-        if (error !== null) {
-            console.log(`Test execution error: ${error}`);
-        } else {
-            // console.log(`stdout: ${stdout}`);
-            // console.log(`stderr: ${stderr}`);
+    return new Promise(function (resolve, reject) {
+        let Child = exec('node', [`${test}`], {cwd: localDir},
+          (error, stdout, stderr) => {
+            if (error !== null) {
+                console.log(`Test execution error:\n ${error}`);
+                return false;
+            } else {
+                // TODO: Handle user defined errors
+                // if (stderr != null) {
+                //     console.log(`Internal test error:\n ${stderr}`);
+                //     return false;
+                // }
 
-            let innerHtml = stdout;
-            if(hasTranslation) {
-                innerHtml = translateContents(innerHtml);
+                let innerHtml = stdout;
+                if(hasTranslation) {
+                    innerHtml = translateContents(innerHtml);
+                }
+                if (hasLess) {
+                    let renderSuccess = renderLess(lessFile);
+                    if(!renderSuccess) {
+                        Child.emit("error");
+                    }
+                }
+                /* Generate the output HTML for in-browser test */
+                const base = fs.readFileSync(path.join(moduleDir, 'public/test.html'), 'UTF-8');
+                fs.outputFileSync(path.join(moduleDir, 'public/index.html'), base.replace('%CONTENT%', innerHtml), 'UTF-8');
+
+                Child.emit("success");
             }
-            if (hasLess) {
-                renderLess(lessFile);
-            }
-            /* Generate the output HTML for in-browser test */
-            const base = fs.readFileSync(path.join(moduleDir, 'public/test.html'), 'UTF-8');
-            fs.outputFileSync(path.join(moduleDir, 'public/index.html'), base.replace('%CONTENT%', innerHtml), 'UTF-8');
-        }
-    });
+        });
+
+        Child.addListener("error", reject);
+        Child.addListener("success", resolve);
+    })
 }
 
 const executeGenerate= (module) => {
     let fileContents = fs.readFileSync(path.join(localDir, module), {encoding: 'utf-8'});
 
     let translationJson = generateTranslationsJSON(fileContents);
+
+    // TODO use hasTranslation var to check if there could be an issue with overwriting
     fs.outputFileSync(path.join(localDir, 'translation.json'), JSON.stringify(translationJson));
     return;
 }
@@ -156,7 +194,7 @@ const translateContents = (contents) => {
 }
 
 const generateTranslationsJSON = (contents) => {
-    var translationsRegex = /`([^`]*)`/g,
+    var translationsRegex = /`([^`]*)`/g, // matches to any back-tick quotes, i.e `... something ...`
         matches,
         translatables = [];
 
@@ -165,7 +203,7 @@ const generateTranslationsJSON = (contents) => {
     while (matches = translationsRegex.exec(contents)) {
         let lang = `${language}`;
 
-        // TODO cleana this up
+        // TODO clean this up
         translations[matches[1]] = {};
         translations[matches[1]][lang] = matches[1];
     }
@@ -179,7 +217,7 @@ const renderLess = (lessPath) => {
 
     var bootStrapDir = "node_modules/bootstrap/less/";
 
-    var lessRegex = /@import '[^\s]*\/([^\s]+.less)';/g; // regex matches `...`
+    var lessRegex = /@import '[^\s]*\/([^\s]+.less)';/g; // regex matches @import '.../...something.less'
     var  matches;
 
     // While a regex match (i.e less file imports) was found... 
@@ -196,14 +234,21 @@ const renderLess = (lessPath) => {
     less.render(lessContentsCopy, function(err, css) {
         if (!err) {
             fs.outputFileSync(path.join(moduleDir, "public/test.css"), css.css);
+            return true;
         } else {
-            console.log("ERR rendering", err);
+            console.log("Error rendering .less file:\n", err);
+            return false;
         }
     });
 }
 
+
+const moveFilesForServing = () => {
+
+}
+
 // TODO cleanup after files
-const cleanUpDir = () => {
+const cleanUpTmpDir = () => {
 
 }
 
