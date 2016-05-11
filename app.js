@@ -99,10 +99,9 @@ const executeTest = (module) => {
                 return false;
             } else {
                 // TODO: Handle user defined errors
-                // if (stderr != null) {
-                //     console.log(`Internal test error:\n ${stderr}`);
-                //     return false;
-                // }
+                if (stderr != '') {
+                    console.log(`Internal test error:\n ${stderr}`);
+                }
 
                 let innerHtml = stdout;
                 if(hasTranslation) {
