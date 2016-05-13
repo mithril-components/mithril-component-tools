@@ -23,7 +23,7 @@ const hasLess = (lessPath) => {
 
 const render = (lessPath) => {
 
-    var lessContents = fs.readFileSync(path.join(localDir, lessPath), 'UTF-8');
+    var lessContents = fs.readFileSync(lessPath, 'UTF-8');
 
     var lessContentsCopy = lessContents;
 
@@ -48,7 +48,7 @@ const render = (lessPath) => {
             if (err == null) {
                 resolve(cssOutput.css);
             } else {
-                console.log(`Failed to render .less:\n ${err}`);
+                // console.log(`Failed to render .less:\n ${err}`);
                 reject(false);
             }
         });
