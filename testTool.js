@@ -27,7 +27,7 @@ const hashString = (string) => {
   return hash;
 };
 let hashDirNum = hashString(localDir) + "/";
-const tmpDir = path.join(localDir, hashDirNum); // "/tmp"
+const tmpDir = path.join("/tmp", hashDirNum);
 
 
 const startServer = () => {
@@ -59,25 +59,36 @@ const prepServer = () => {
 }
 
 const execute = (module, language) => {
-    let test = 'test.js';
+    let localModuleDir = module.slice(0,-3); // TODO use regex
 
+    let splitPath = localModuleDir.split("/");
+    console.log(splitPath);
+    if (splitPath.length > 1) {
+        splitPath.pop();
+    }
+    console.log(splitPath);
+    let correctedlocalDir = splitPath.join("/");
+    let componentDir = path.join(localDir, correctedlocalDir);
+    let testPath = path.join(componentDir, 'test.js');
+    console.log(testPath);
     // Check if a language was entered
     if (language != null) {
         // Check if there is a translation.json
         if (translator.hasTranslation) {
             // Translate test.js and return the translated file's location
-            test = translateTest(module, language);
+            let test = translateTest(testPath, language);
 
             // Translate the module itself 
-            translator.translateModule(module, language, path.join(tmpDir, `public/[${language}]${module}`));
+            translator.translateModule(testPath, language, path.join(tmpDir, `public/[${language}]${module}`));
         }
     }
 
-    runTest(module, test).then((response) => {
+    runTest(module, testPath).then((response) => {
         prepServer();
         startServer(); // startServer pointing to the testDir
     }, (err) => {
         // TODO add console output for error
+        console.log("Failed to start test");
     });
 }
 
@@ -96,7 +107,7 @@ const runTest = (module, test) => {
 
                 let innerHtml = stdout;
                 console.log(`Has translation: ${translator.hasTranslation}`);
-                if(translator.hasTranslation) {
+                if(translator.hasTranslation) { // TODO check hasTranslation or just use fs.fromJSON
                     innerHtml = translator.translateContents(innerHtml);
                 }
 
@@ -110,6 +121,7 @@ const runTest = (module, test) => {
                         
                         Child.emit("custom-success");
                     }, (err) => {
+                        console.log("rendering error");
                         Child.emit("error");
                         return;
                     });
