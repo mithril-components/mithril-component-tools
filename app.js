@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 'use strict'
 
-const test = require('./testTool');
-const generate = require('./generateTool');
-const publish = require('./publishTool');
+const test = require('./lib/testTool');
+const generate = require('./lib/generateTool');
+const publish = require('./lib/publishTool');
 
 // Expected format: mct command module.js lang
-const expectedFormat = "mct command module.js [lang]";
+const expectedFormat = "mct command /path/to/module.js [lang]";
 
 const execute = (command, args) => {
     if (args.module == null) {
-        console.err(`Expected format: ${expectedFormat}`);
+        console.log(`Expected format: ${expectedFormat}`);
         return;
     }
 
@@ -22,7 +22,7 @@ const execute = (command, args) => {
             if (!(args.language == null)) {
                 generate.execute(args.module, args.language);
             } else {
-                // Perhaps gracefully handle
+                // TODO: Perhaps gracefully handle by asking for a language input
             }
             break;
         case 'publish':
@@ -33,8 +33,8 @@ const execute = (command, args) => {
     }
 }
 
-let command  = process.argv[2];
-let commandArgs = {
+const command  = process.argv[2];
+const commandArgs = {
     module : process.argv[3],
     language : process.argv[4],
 }

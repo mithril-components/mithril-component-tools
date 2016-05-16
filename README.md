@@ -22,7 +22,7 @@ To use mithril_component_tools for testing your mithril component you need to ha
 * COMPONENT_NAME.less: (Optional) Less styles if you need in your project. The tools render imported `.less` files from the bootstrap node_module.
 * translation.json: (Optional) Test resources you need in your app.
 
-Test components
+Publish components
 ==========================
 Command: `mct publish COMPONENT_NAME.js LANGUAGE` (LANGUAGE optional, only runs if there is a translation.json file)
 
