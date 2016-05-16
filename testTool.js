@@ -1,6 +1,5 @@
 'use strict'
 
-const Promise = require('promise');
 const express = require('express');
 const fs   = require('fs-extra');
 const exec = require('child_process').execFile;
@@ -17,7 +16,7 @@ const moduleDir = __dirname;
 const localDir = process.cwd();
 // Hash from: http://stackoverflow.com/a/7616484
 const hashString = (string) => {
-  var hash = 0, i, chr, len;
+  let hash = 0, i, chr, len;
   if (string.length === 0) return hash;
   for (i = 0, len = string.length; i < len; i++) {
     chr   = string.charCodeAt(i);
@@ -156,7 +155,7 @@ const translateTest = (module, language) => {
     let testCopyContents = testContents;
 
     // Use regexp to get dependancies and replace the module being tested
-    var moduleRegex = new RegExp(`\.\/(${moduleName})(?:\.js)?`, "g"),
+    let moduleRegex = new RegExp(`\.\/(${moduleName})(?:\.js)?`, "g"),
         matches,
         requirements = [];
 

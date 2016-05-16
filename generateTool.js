@@ -29,7 +29,7 @@ const execute = (module,language) => {
 
 const generateTranslationsJSON = (contents, language) => {
 
-    var translationsRegex = /`([^`]*)`/g, // matches to any back-tick quotes, i.e `... something ...`
+    let translationsRegex = /`([^`]*)`/g, // matches to any back-tick quotes, i.e `... something ...`
         matches,
         translatables = [];
 

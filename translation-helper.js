@@ -23,7 +23,7 @@ const translateModule = (module, language, outputPath) => {
 
 const translateContents = (contents, language) => {
     // Use regexp to get dependancies including regexp 
-    var translationsRegex = /`([^`]*)`/g;
+    let translationsRegex = /`([^`]*)`/g;
     let newContents = contents.replace(translationsRegex, (match) => {
         let phrase = match.replace(/`/g, '');
 

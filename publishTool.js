@@ -1,6 +1,5 @@
 'use strict'
 
-const Promise = require('promise');
 const fs   = require('fs-extra');
 const path = require('path');
 const exec = require('child_process');
@@ -143,11 +142,11 @@ const execute = (language) => {
 }
 
 
-// var walk = function(dir, handlerFunction, language, done) {
-//   var results = [];
+// let walk = function(dir, handlerFunction, language, done) {
+//   let results = [];
 //   fs.readdir(dir, function(err, list) {
 //     if (err) return done(err);
-//     var pending = list.length;
+//     let pending = list.length;
 //     if (!pending) return done(null, results);
 
 //     list.forEach(function(file) {

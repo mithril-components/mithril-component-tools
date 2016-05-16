@@ -23,14 +23,14 @@ const hasLess = (lessPath) => {
 
 const render = (lessPath) => {
 
-    var lessContents = fs.readFileSync(lessPath, 'UTF-8');
+    let lessContents = fs.readFileSync(lessPath, 'UTF-8');
 
-    var lessContentsCopy = lessContents;
+    let lessContentsCopy = lessContents;
 
-    var bootStrapDir = "node_modules/bootstrap/less/"; // TODO test that accessing bootStrap this way will always work
+    let bootStrapDir = "node_modules/bootstrap/less/"; // TODO test that accessing bootStrap this way will always work
 
-    var lessRegex = /@import '[^\s]*\/([^\s]+.less)';/g; // regex matches @import '.../...something.less'
-    var  matches;
+    let lessRegex = /@import '[^\s]*\/([^\s]+.less)';/g; // regex matches @import '.../...something.less'
+    let  matches;
 
     // While a regex match (i.e less file imports) was found... 
     while (matches = lessRegex.exec(lessContents)) {
