@@ -5,11 +5,15 @@ const path = require('path');
 
 const localDir = process.cwd();
 let translate, hasTranslation;
-try {
-    translate = require(path.join(localDir, 'translation.json'));
-    hasTranslation = true;
-} catch (e) {
-    hasTranslation = false
+const getTranslationJson = (jsonPath) => {
+	try {
+	    let translatedJson = fs.readFileSync(jsonPath, {throws: false});
+	    return translatedJson;
+	} catch (e) {
+		// console.log(e);
+		// console.log("No translation.json found at location: ", jsonPath);
+	    return null;
+	}
 }
 
 const translateModule = (module, language, outputPath) => {
@@ -21,7 +25,7 @@ const translateModule = (module, language, outputPath) => {
     return outputPath;
 }
 
-const translateContents = (contents, language) => {
+const translateContents = (contents, translationJson, language) => {
     // Use regexp to get dependancies including regexp 
     let translationsRegex = /`([^`]*)`/g;
     let newContents = contents.replace(translationsRegex, (match) => {
@@ -29,7 +33,7 @@ const translateContents = (contents, language) => {
 
         // let individualWords = phrase.split(' ');
 
-        let replacement = "`" + translate[phrase][language] + "`";
+        let replacement = "`" + translationJson[phrase][language] + "`";
         return replacement;
     });
 
@@ -38,6 +42,7 @@ const translateContents = (contents, language) => {
 
 module.exports = {
 	hasTranslation : hasTranslation,
+	getTranslationJson : getTranslationJson,
 	translationJSON : translate, // should not be used without first checking hasTranslation
 	translateModule : translateModule,
 	translateContents : translateContents

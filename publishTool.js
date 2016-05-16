@@ -72,12 +72,8 @@ const fileHandler = (root, fileStats, next) => {
 		/* HANDLE TRANSLATING MODULE FILES */
 		// Check if there is a translation
 		let translationFile = 'translation.json';
-		let translationJSON;
-		try {
-		 translationJSON = fs.readJsonSync(path.join(root, translationFile), {throws: false}) // throws false makes no error occur if json is invalid
-		} catch (e) { // if translation doesn't exist
-			next();
-		}
+
+		let translationJSON = translator.getTranslationJson(path.join(root, translationFile))// throws false makes no error occur if json is invalid
 
 		if (translationJSON == null) { // if it was invalid
 			// leave it alone

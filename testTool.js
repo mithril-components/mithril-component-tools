@@ -1,5 +1,6 @@
 'use strict'
 
+const Promise = require('promise');
 const express = require('express');
 const fs   = require('fs-extra');
 const exec = require('child_process').execFile;
@@ -13,7 +14,7 @@ let port   = process.env.PORT || 9004;
 
 
 const moduleDir = __dirname;
-const localDir = process.cwd();
+let localDir = process.cwd();
 // Hash from: http://stackoverflow.com/a/7616484
 const hashString = (string) => {
   let hash = 0, i, chr, len;
@@ -26,8 +27,7 @@ const hashString = (string) => {
   return hash;
 };
 let hashDirNum = hashString(localDir) + "/";
-const tmpDir = path.join("/tmp", hashDirNum);
-
+const tmpDir = path.join(localDir, hashDirNum); // /tmp
 
 const startServer = () => {
     app.use("/node_modules/", express.static(path.join(tmpDir, '/public/node_modules')));
@@ -54,35 +54,37 @@ const startServer = () => {
 
 const prepServer = () => {
     // cleanTempDir();
-    fs.copySync(path.join(localDir, '/node_modules'), path.join(tmpDir, '/public/node_modules'));
+    try {
+        fs.copySync(path.join(localDir, '/node_modules'), path.join(tmpDir, '/public/node_modules'));
+    } catch (e) {
+        console.log("Could not copy node modules from ", path.join(localDir, '/node_modules'))
+    }
 }
 
 const execute = (module, language) => {
     let localModuleDir = module.slice(0,-3); // TODO use regex
 
     let splitPath = localModuleDir.split("/");
-    console.log(splitPath);
     if (splitPath.length > 1) {
         splitPath.pop();
     }
-    console.log(splitPath);
     let correctedlocalDir = splitPath.join("/");
-    let componentDir = path.join(localDir, correctedlocalDir);
-    let testPath = path.join(componentDir, 'test.js');
-    console.log(testPath);
+    localDir = path.join(localDir, correctedlocalDir);
+
+    let testPath = "test.js";
     // Check if a language was entered
     if (language != null) {
         // Check if there is a translation.json
-        if (translator.hasTranslation) {
+        if (translator.getTranslationJson(path.join(localDir, "translation.json")) != null ) {
             // Translate test.js and return the translated file's location
-            let test = translateTest(testPath, language);
+            testPath = translateTest(testPath, language);
 
             // Translate the module itself 
             translator.translateModule(testPath, language, path.join(tmpDir, `public/[${language}]${module}`));
         }
     }
 
-    runTest(module, testPath).then((response) => {
+    runTest(module, testPath, language).then((response) => {
         prepServer();
         startServer(); // startServer pointing to the testDir
     }, (err) => {
@@ -91,7 +93,7 @@ const execute = (module, language) => {
     });
 }
 
-const runTest = (module, test) => {
+const runTest = (module, test, language) => {
     return new Promise(function (resolve, reject) {
         let Child = exec('node', [`${test}`], {cwd: localDir},
           (error, stdout, stderr) => {
@@ -105,9 +107,11 @@ const runTest = (module, test) => {
                 }
 
                 let innerHtml = stdout;
-                console.log(`Has translation: ${translator.hasTranslation}`);
-                if(translator.hasTranslation) { // TODO check hasTranslation or just use fs.fromJSON
-                    innerHtml = translator.translateContents(innerHtml);
+                let translationJson = translator.getTranslationJson(path.join(localDir, "translation.json"));
+
+                if(translationJson != null ) { // TODO check hasTranslation or just use fs.fromJSON
+
+                    innerHtml = translator.translateContents(innerHtml, translationJson, language);
                 }
 
                 // Check if there is a less file for the module
@@ -120,7 +124,7 @@ const runTest = (module, test) => {
                         
                         Child.emit("custom-success");
                     }, (err) => {
-                        console.log("rendering error");
+                        console.log("Less rendering error");
                         Child.emit("error");
                         return;
                     });
@@ -163,8 +167,10 @@ const translateTest = (module, language) => {
         testCopyContents = testCopyContents.replace(matches[0], `./[${language}]${module}`);
     }
 
+    let translationJson = translator.getTranslationJson(path.join(localDir, "translation.json"));
+
     // Use regexp to translate the rest of the content
-    let translatedTestContent = translator.translateContents(testCopyContents);
+    let translatedTestContent = translator.translateContents(testCopyContents, translationJson, language);
     let translatedTest = path.join(tmpDir, `public/[${language}]test.js`);
     fs.outputFileSync(translatedTest, translatedTestContent);
 
