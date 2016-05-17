@@ -23,6 +23,7 @@ const execute = (command, args) => {
                 generate.execute(args.module, args.language);
             } else {
                 // TODO: Perhaps gracefully handle by asking for a language input
+                console.log("No language input. Exiting");
             }
             break;
         case 'publish':
