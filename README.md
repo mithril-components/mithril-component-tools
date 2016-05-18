@@ -5,12 +5,12 @@ Install via `npm install -g mithril_component_tools`
 To use any mithril_component_tools your mithril component you need to have these files in your repo:
 * COMPONENT_NAME.js: COMPONENT_NAME is the name of your component. 
 
-In order to use these tools, projects should be setup in the following fashion:
+In order to use these tools, the suggested project is as follows:
 ```
-project_dir/                --> where mct tool commands shouod be executed
+project_dir/                --> where mct tool commands should be executed
   mithril_components/		--> contains all components
     component_name/             --> component_name directory
-      component_name.js         --> the comoponent
+      component_name.js         --> the component
       test.js         			--> test of the component
       translation.json      	--> optional translation.json file
       component_name.less		--> optional component_name.less file
